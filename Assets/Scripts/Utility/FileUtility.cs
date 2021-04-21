@@ -35,4 +35,9 @@ public static class FileUtility
 
         return new List<string>(readTexts);
     }
+
+    public static void ResetFile()
+    {
+        File.WriteAllText(GetFilePath(), string.Empty);
+    }
 }

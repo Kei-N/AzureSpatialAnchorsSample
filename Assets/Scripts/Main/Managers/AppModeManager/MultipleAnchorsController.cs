@@ -14,12 +14,14 @@ public class MultipleAnchorsController : MonoBehaviour
     [SerializeField] private Interactable m_CreateAnchorModeButton = null;
     [SerializeField] private Interactable m_ReproduceAnchorModeButton = null;
     [SerializeField] private Interactable m_CreateAnchorButton = null;
+    [SerializeField] private Interactable m_DeleteAnchorButton = null;
     [SerializeField] private Interactable m_TopMenuButton = null;
 
     private AppProcess _currentProcess = AppProcess.CreateAnchor;
     private GameObject _layoutAnchorGhost = null;
     private Dictionary<string, GameObject> _createdAnchorObjects = new Dictionary<string, GameObject>();
     private CloudSpatialAnchorWatcher _currentWatcher;
+    private List<CloudSpatialAnchor> _existingCloudAnchors = new List<CloudSpatialAnchor>();
 
     private enum AppProcess
     {
@@ -51,42 +53,35 @@ public class MultipleAnchorsController : MonoBehaviour
     public void Initialize()
     {
         if (FileUtility.ReadFile() == null) m_ReproduceAnchorModeButton.gameObject.SetActive(false);
-        m_CreateAnchorModeButton.OnClick.AddListener(async () => await SelectProcess(AppProcess.CreateAnchor));
-        m_ReproduceAnchorModeButton.OnClick.AddListener(async () => await SelectProcess(AppProcess.ReproduceAnchor));
-        m_CreateAnchorButton.OnClick.AddListener(async () => await CreateAnchor());
-        m_TopMenuButton.OnClick.AddListener(() => StopSession());
+        m_CreateAnchorModeButton.OnClick.AddListener(async () => await SelectProcessAsync(AppProcess.CreateAnchor));
+        m_ReproduceAnchorModeButton.OnClick.AddListener(async () => await SelectProcessAsync(AppProcess.ReproduceAnchor));
+        m_CreateAnchorButton.OnClick.AddListener(async () => await CreateAnchorAsync());
+        m_DeleteAnchorButton.OnClick.AddListener(async () => await DeleteAnchorAsync());
+        m_TopMenuButton.OnClick.AddListener(async () => await ResetSessionAsync());
 
         m_SpatialAnchorManager.AnchorLocated += SpatialAnchorManager_AnchorLocated;
         m_SpatialAnchorManager.LocateAnchorsCompleted += SpatialAnchorManager_LocateAnchorsCompleted;
-    }
-
-    private void OnDestroy()
-    {
-        StopSession();
     }
 
     /// <summary>
     /// アプリケーションの処理を選択する
     /// </summary>
     /// <param name="appProcess"></param>
-    private async Task SelectProcess(AppProcess appProcess)
+    private async Task SelectProcessAsync(AppProcess appProcess)
     {
         _currentProcess = appProcess;
         m_TopMenu.SetActive(false);
-        await StartSession();
+        await StartSessionAsync();
         switch (_currentProcess)
         {
             case AppProcess.CreateAnchor:
+                // アンカー配置用のアンカーゴーストを生成
+                CreateLayoutAnchorGhost();
                 // ボタンを表示
                 m_CreateAnchorButton.gameObject.SetActive(true);
                 m_TopMenuButton.gameObject.SetActive(true);
-                // アンカー配置用のアンカーゴーストを生成
-                Debug.Log("レイアウト用のアンカーゴーストを生成します。");
-                _layoutAnchorGhost = Instantiate(m_AnchorPrefab, Camera.main.transform.position + Vector3.forward, m_AnchorPrefab.transform.rotation);
                 break;
             case AppProcess.ReproduceAnchor:
-                // ボタンを表示
-                m_TopMenuButton.gameObject.SetActive(true);
                 // アンカーを探すためにウォッチャーを生成する
                 if (_currentWatcher != null)
                 {
@@ -94,6 +89,8 @@ public class MultipleAnchorsController : MonoBehaviour
                     _currentWatcher = null;
                 }
                 _currentWatcher = CreateWatcher();
+                // ボタンを表示
+                m_TopMenuButton.gameObject.SetActive(true);
                 Debug.Log("アンカーを捜索中...");
                 break;
         }
@@ -102,7 +99,7 @@ public class MultipleAnchorsController : MonoBehaviour
     /// <summary>
     /// セッションの作成・開始
     /// </summary>
-    private async Task StartSession()
+    private async Task StartSessionAsync()
     {
         // セッションの作成
         if (m_SpatialAnchorManager.Session == null)
@@ -111,27 +108,29 @@ public class MultipleAnchorsController : MonoBehaviour
             await m_SpatialAnchorManager.CreateSessionAsync();
         }
         // セッションの開始
-        Debug.Log("セッションを開始します。");
-        await m_SpatialAnchorManager.StartSessionAsync();
+        if (!m_SpatialAnchorManager.IsSessionStarted)
+        {
+            Debug.Log("セッションを開始します。");
+            await m_SpatialAnchorManager.StartSessionAsync();
+        }
     }
 
     /// <summary>
     /// セッションを停止、ローカルアンカーを破棄、ウォッチャーを停止
     /// </summary>
-    private void StopSession()
+    private async Task ResetSessionAsync()
     {
         // ボタンを非表示
         m_CreateAnchorButton.gameObject.SetActive(false);
+        m_DeleteAnchorButton.gameObject.SetActive(false);
         m_TopMenuButton.gameObject.SetActive(false);
 
         // 配置したローカルアンカーを削除
-        if (_layoutAnchorGhost != null) Destroy(_layoutAnchorGhost);
-        foreach (var anchorObject in _createdAnchorObjects.Values) Destroy(anchorObject);
-        _createdAnchorObjects.Clear();
+        DeleteLocalAnchor();
 
-        // セッションを停止
-        Debug.Log("セッションを停止します。");
-        m_SpatialAnchorManager.StopSession();
+        // セッションをリセット
+        Debug.Log("セッションをリセットします。");
+        await m_SpatialAnchorManager.ResetSessionAsync();
 
         // ウォッチャーを停止
         if (_currentWatcher != null)
@@ -143,33 +142,41 @@ public class MultipleAnchorsController : MonoBehaviour
 
         // ボタンを表示
         m_TopMenu.SetActive(true);
+        if (FileUtility.ReadFile() == null)
+        {
+            m_ReproduceAnchorModeButton.gameObject.SetActive(false);
+        }
+        else
+        {
+            m_ReproduceAnchorModeButton.gameObject.SetActive(true);
+        }
+            
+    }
+
+    /// <summary>
+    /// レイアウト用のアンカーゴーストを生成
+    /// </summary>
+    private void CreateLayoutAnchorGhost()
+    {
+        Debug.Log("レイアウト用のアンカーゴーストを生成します。");
+        if(_layoutAnchorGhost == null) _layoutAnchorGhost = Instantiate(m_AnchorPrefab.gameObject, Camera.main.transform.position + Camera.main.transform.forward, m_AnchorPrefab.transform.rotation);
     }
 
     /// <summary>
     /// アンカーを配置し、アンカーをクラウドに保存、アンカーIndentifierをローカルに保存
     /// </summary>
     /// <returns></returns>
-    private async Task CreateAnchor()
+    private async Task CreateAnchorAsync()
     {
-        if (_layoutAnchorGhost == null)
-        {
-            Debug.Log("レイアウト用のアンカーゴーストがありません。");
-            return;
-        }
-        else
-        {
-            // レイアウト用のアンカーゴーストを破棄
-            Destroy(_layoutAnchorGhost);
-        }
         // アンカーを生成
         Debug.Log("アンカーを生成します。");
         var anchorObject = CreateAnchorObject(_layoutAnchorGhost.transform.position, _layoutAnchorGhost.transform.rotation);
+        Destroy(_layoutAnchorGhost);
         // アンカー情報を保存
         Debug.Log("アンカー情報を保存します。");
         await SaveAnchorAsync(anchorObject);
         // レイアウト用のアンカーゴーストを生成
-        Debug.Log("レイアウト用のアンカーゴーストを生成します。");
-        _layoutAnchorGhost = Instantiate(m_AnchorPrefab, Camera.main.transform.position + Vector3.forward, m_AnchorPrefab.transform.rotation);
+        CreateLayoutAnchorGhost();
     }
 
     /// <summary>
@@ -178,13 +185,16 @@ public class MultipleAnchorsController : MonoBehaviour
     private GameObject CreateAnchorObject(Vector3 worldPos, Quaternion worldRot)
     {
         // アンカー用のGameObjectを生成
-        GameObject anchorObject = Instantiate(m_AnchorPrefab, worldPos, worldRot);
+        GameObject anchorObject = Instantiate(m_AnchorPrefab.gameObject, worldPos, worldRot);
 
         // CloudNativeAnchorコンポーネントをアタッチ
         anchorObject.AddComponent<CloudNativeAnchor>();
 
         // 色を設定
         anchorObject.GetComponent<MeshRenderer>().material.color = Color.yellow;
+
+        // コライダーを非アクティブ化
+        anchorObject.GetComponent<BoxCollider>().enabled = false;
 
         return anchorObject;
     }
@@ -275,6 +285,35 @@ public class MultipleAnchorsController : MonoBehaviour
     }
 
     /// <summary>
+    /// クラウドのアンカーを全削除
+    /// </summary>
+    private async Task DeleteAnchorAsync()
+    {
+        if (_existingCloudAnchors.Count == 0) return;
+        // クラウドアンカーを全削除
+        Debug.Log("クラウドアンカーを全削除します。");
+        foreach(var cloudAnchor in _existingCloudAnchors) await m_SpatialAnchorManager.DeleteAnchorAsync(cloudAnchor);
+        _existingCloudAnchors.Clear();
+        // ローカルアンカーを全削除
+        DeleteLocalAnchor();
+        // ローカルのアンカーIdentifierを全削除
+        FileUtility.ResetFile();
+        // ボタンを非表示
+        m_DeleteAnchorButton.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// ローカルのアンカーを全削除
+    /// </summary>
+    private void DeleteLocalAnchor()
+    {
+        Debug.Log("ローカルアンカーを全削除します。");
+        if (_layoutAnchorGhost != null) Destroy(_layoutAnchorGhost);
+        foreach (var anchorObject in _createdAnchorObjects.Values) Destroy(anchorObject);
+        _createdAnchorObjects.Clear();
+    }
+
+    /// <summary>
     /// アンカーが検知されたときに呼び出される
     /// </summary>
     private void SpatialAnchorManager_AnchorLocated(object sender, AnchorLocatedEventArgs args)
@@ -294,6 +333,7 @@ public class MultipleAnchorsController : MonoBehaviour
                 var anchorObject = CreateAnchorObject(anchorPose.position, anchorPose.rotation);
                 // アンカー情報をキャッシュ
                 _createdAnchorObjects.Add(cloudAnchor.Identifier, anchorObject);
+                _existingCloudAnchors.Add(cloudAnchor);
 
                 Debug.Log($"Reproduce anchor. Idendifier is {cloudAnchor.Identifier}");
             });
@@ -306,6 +346,10 @@ public class MultipleAnchorsController : MonoBehaviour
     /// </summary>
     private void SpatialAnchorManager_LocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
     {
-        Debug.Log("アンカーの検索が完了しました。");
+        Debug.Log($"アンカーの検索が完了し、{_existingCloudAnchors.Count}個のアンカーが見つかりました。");
+        UnityDispatcher.InvokeOnAppThread(() =>
+        {
+            m_DeleteAnchorButton.gameObject.SetActive(true);
+        });
     }
 }

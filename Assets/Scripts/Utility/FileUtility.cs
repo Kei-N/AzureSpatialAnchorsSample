@@ -24,16 +24,17 @@ public static class FileUtility
         File.AppendAllText(GetFilePath(), identifier + Environment.NewLine);
     }
 
-    public static List<string> ReadFile()
+    public static string[] ReadFile()
     {
         if (!File.Exists(GetFilePath())) return null;
 
         string readText = File.ReadAllText(GetFilePath());
         readText = readText.Replace(Environment.NewLine, "\r");
         readText = readText.Trim('\r');
-        string[] readTexts = readText.Split('\r');
+        var result = readText.Split('\r');
+        if (result.Length == 1 && result[0].Equals(string.Empty)) result = null;
 
-        return new List<string>(readTexts);
+        return result;
     }
 
     public static void ResetFile()

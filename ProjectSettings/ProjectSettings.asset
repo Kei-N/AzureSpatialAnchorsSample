@@ -128,9 +128,7 @@ PlayerSettings:
     16:9: 1
     Others: 1
   bundleVersion: 0.1
-  preloadedAssets:
-  - {fileID: 2100402884437355196, guid: 3ccb07cd2fd8dfb48bdbef36352fd53a, type: 2}
-  - {fileID: -6543536172243161141, guid: 3a7a13accfe1abf4b870d39752892172, type: 2}
+  preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   m_HolographicPauseOnTrackingLoss: 1
@@ -626,6 +624,7 @@ PlayerSettings:
       PrivateNetworkClientServer: True
       InternetClientServer: True
       SpatialPerception: True
+      PicturesLibrary: True
       InternetClient: True
       Microphone: True
   metroTargetDeviceFamilies: {}

@@ -99,7 +99,15 @@ public class OneAnchorController : MonoBehaviour
                 Debug.Log("AppState.StartSession Start");
                 _currentAppState = AppState.Processing;
                 await m_SpatialAnchorManager.StartSessionAsync();
-                _currentAppState = AppState.LayoutLocalAnchor;
+                var identifiers = FileUtility.ReadFile();
+                if (identifiers != null)
+                {
+                    _currentAppState = AppState.LookForAnchor;
+                }
+                else
+                {
+                    _currentAppState = AppState.LayoutLocalAnchor;
+                }
                 Debug.Log("AppState.StartSession End");
                 break;
             case AppState.LayoutLocalAnchor:
@@ -333,6 +341,7 @@ public class OneAnchorController : MonoBehaviour
                 // such as storing the key in the AnchorExchanger
                 await Task.CompletedTask;
                 _currentAnchorId = _currentCloudAnchor.Identifier;
+                FileUtility.SaveFile(_currentAnchorId);
                 Pose anchorPose = _currentCloudAnchor.GetPose();
                 SpawnOrMoveCurrentAnchoredObject(anchorPose.position, anchorPose.rotation);
             }
@@ -368,6 +377,12 @@ public class OneAnchorController : MonoBehaviour
         if (_currentAppState == AppState.CreateSessionForQuery)
         {
             anchorsToFind.Add(_currentAnchorId);
+        }
+
+        var identifiers = FileUtility.ReadFile();
+        if(identifiers != null)
+        {
+            anchorsToFind.AddRange(identifiers);
         }
 
         _anchorLocateCriteria.NearAnchor = new NearAnchorCriteria();

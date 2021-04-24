@@ -1,8 +1,4 @@
-using Microsoft.Azure.SpatialAnchors;
-using Microsoft.Azure.SpatialAnchors.Unity;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using UniRx;
 using UnityEngine;
 
 /// <summary>
@@ -10,8 +6,8 @@ using UnityEngine;
 /// </summary>
 public class Main : MonoBehaviour
 {
-    [SerializeField]
-    private AppModeManager m_AppModeManager = null;
+    [SerializeField] private SpatialAnchorController m_SpatialAnchorController = null;
+    [SerializeField] private UIManager m_UIManager = null;
 
     /// <summary>
     /// エントリーポイント
@@ -26,6 +22,21 @@ public class Main : MonoBehaviour
     /// </summary>
     private void Initialize()
     {
-        m_AppModeManager.InitializeManager();
+        m_SpatialAnchorController.Initialize();
+        m_UIManager.InitializeManager();
+
+        m_UIManager.OnClickedButton
+            .Subscribe(async appProcess =>
+            {
+                await m_SpatialAnchorController.ExecuteProcessAsync(appProcess);
+            })
+            .AddTo(this);
+
+        m_SpatialAnchorController.OnChangedUI
+            .Subscribe(appProcess =>
+            {
+                m_UIManager.ChangeUI(appProcess.Item1, appProcess.Item2);
+            })
+            .AddTo(this);
     }
 }

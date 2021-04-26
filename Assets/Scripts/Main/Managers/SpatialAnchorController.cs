@@ -201,8 +201,9 @@ public class SpatialAnchorController : MonoBehaviour
             // ローカルにアンカーIdentifierを保存
             FileUtility.SaveFile(cloudAnchor.Identifier);
 
-            // アンカーIdentifierとGameObjectをキャッシュする
+            // アンカー情報をキャッシュする
             _createdAnchorObjects.Add(cloudAnchor.Identifier, anchorObject);
+            _existingCloudAnchors.Add(cloudAnchor);
 
             Debug.Log($"Saved anchor. Idendifier is {cloudAnchor.Identifier}");
 

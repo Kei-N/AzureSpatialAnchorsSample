@@ -303,6 +303,7 @@ public class SpatialAnchorController : MonoBehaviour
 
         // 配置したローカルアンカーを削除
         DeleteLocalAnchor();
+        _existingCloudAnchors.Clear();
 
         // セッションをリセット
         Debug.Log("セッションをリセットします。");

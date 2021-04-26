@@ -67,6 +67,9 @@ public class SpatialAnchorController : MonoBehaviour
         // ボタンを非表示
         onChangedUI.OnNext((false, AppProcess.CreateAnchorMode));
         onChangedUI.OnNext((false, AppProcess.ReproduceAnchorMode));
+        onChangedUI.OnNext((false, AppProcess.AddAnchor));
+        onChangedUI.OnNext((false, AppProcess.DeleteAnchor));
+        onChangedUI.OnNext((false, AppProcess.TopMenu));
         // セッションを開始
         await StartSessionAsync();
         // レイアウト用のアンカーゴーストを生成
@@ -262,6 +265,7 @@ public class SpatialAnchorController : MonoBehaviour
     {
         if (_existingCloudAnchors.Count == 0) return;
         // ボタンを非表示
+        onChangedUI.OnNext((false, AppProcess.AddAnchor));
         onChangedUI.OnNext((false, AppProcess.DeleteAnchor));
         onChangedUI.OnNext((false, AppProcess.TopMenu));
         // クラウドアンカーを全削除
@@ -361,6 +365,7 @@ public class SpatialAnchorController : MonoBehaviour
         Debug.Log($"アンカーの検索が完了し、{_existingCloudAnchors.Count}個のアンカーが見つかりました。");
         UnityDispatcher.InvokeOnAppThread(() =>
         {
+            onChangedUI.OnNext((true, AppProcess.AddAnchor));
             onChangedUI.OnNext((true, AppProcess.DeleteAnchor));
         });
     }

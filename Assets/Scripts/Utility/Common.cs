@@ -5,6 +5,7 @@ public class Common
         CreateAnchorMode = 0,
         ReproduceAnchorMode,
         CreateAnchor,
+        AddAnchor,
         DeleteAnchor,
         TopMenu,
     }

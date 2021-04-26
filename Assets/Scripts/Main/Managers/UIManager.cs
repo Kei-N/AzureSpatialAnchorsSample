@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Interactable m_CreateAnchorModeButton = null;
     [SerializeField] private Interactable m_ReproduceAnchorModeButton = null;
     [SerializeField] private Interactable m_CreateAnchorButton = null;
+    [SerializeField] private Interactable m_AddAnchorButton = null;
     [SerializeField] private Interactable m_DeleteAnchorButton = null;
     [SerializeField] private Interactable m_TopMenuButton = null;
 
@@ -27,6 +28,7 @@ public class UIManager : MonoBehaviour
         m_CreateAnchorModeButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.CreateAnchorMode));
         m_ReproduceAnchorModeButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.ReproduceAnchorMode));
         m_CreateAnchorButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.CreateAnchor));
+        m_AddAnchorButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.CreateAnchorMode));
         m_DeleteAnchorButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.DeleteAnchor));
         m_TopMenuButton.OnClick.AddListener(() => onClickedButton.OnNext(AppProcess.TopMenu));
     }
@@ -46,6 +48,9 @@ public class UIManager : MonoBehaviour
                 break;
             case AppProcess.CreateAnchor:
                 m_CreateAnchorButton.gameObject.SetActive(isActive);
+                break;
+            case AppProcess.AddAnchor:
+                m_AddAnchorButton.gameObject.SetActive(isActive);
                 break;
             case AppProcess.DeleteAnchor:
                 m_DeleteAnchorButton.gameObject.SetActive(isActive);

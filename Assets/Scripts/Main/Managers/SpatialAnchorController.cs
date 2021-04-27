@@ -243,18 +243,7 @@ public class SpatialAnchorController : MonoBehaviour
     private AnchorLocateCriteria ConfigureAnchorLocateCriteria()
     {
         var anchorLocateCriteria = new AnchorLocateCriteria();
-        var anchorsToFind = new List<string>();
-        var identifiers = FileUtility.ReadFile();
-        if (identifiers != null)
-        {
-            anchorsToFind.AddRange(identifiers);
-        }
-        else
-        {
-            Debug.Log("設定可能なアンカーIdentifierがありません。");
-        }
-        anchorLocateCriteria.Identifiers = anchorsToFind.ToArray();
-
+        anchorLocateCriteria.Identifiers = FileUtility.ReadFile();
         return anchorLocateCriteria;
     }
 

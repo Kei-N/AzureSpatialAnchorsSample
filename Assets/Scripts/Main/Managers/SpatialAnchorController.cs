@@ -320,7 +320,7 @@ public class SpatialAnchorController : MonoBehaviour
     }
 
     /// <summary>
-    /// アンカーが検知されたときに呼び出される
+    /// ウォッチャーに登録したアンカーが探知されたときor探知できなかったときに呼び出される
     /// </summary>
     private void SpatialAnchorManager_AnchorLocated(object sender, AnchorLocatedEventArgs args)
     {
@@ -330,6 +330,7 @@ public class SpatialAnchorController : MonoBehaviour
             // 引数からCloudSpatialAnchorを取得
             var cloudAnchor = args.Anchor;
 
+            // Unityのメインスレッドで処理
             UnityDispatcher.InvokeOnAppThread(() =>
             {
                 Pose anchorPose = Pose.identity;
@@ -347,12 +348,12 @@ public class SpatialAnchorController : MonoBehaviour
     }
 
     /// <summary>
-    /// Watcherのすべてのアンカーに対する検索操作が完了したことを通知します。
-    /// (探知されたかどうかは問われません)
+    /// ウォッチャーに登録したすべてのアンカーが処理された(探知されたかどうかを問わず)後に呼び出される
     /// </summary>
     private void SpatialAnchorManager_LocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
     {
         Debug.Log($"アンカーの検索が完了し、{_existingCloudAnchors.Count}個のアンカーが見つかりました。");
+        // Unityのメインスレッドで処理
         UnityDispatcher.InvokeOnAppThread(() =>
         {
             onChangedUI.OnNext((true, AppProcess.AddAnchor));

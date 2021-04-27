@@ -287,6 +287,7 @@ public class SpatialAnchorController : MonoBehaviour
     {
         // ƒ{ƒ^ƒ“‚ð”ñ•\Ž¦
         onChangedUI.OnNext((false, AppProcess.CreateAnchor));
+        onChangedUI.OnNext((false, AppProcess.AddAnchor));
         onChangedUI.OnNext((false, AppProcess.DeleteAnchor));
         onChangedUI.OnNext((false, AppProcess.TopMenu));
 
